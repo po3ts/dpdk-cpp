@@ -1,6 +1,8 @@
 #include <rte_debug.h>
 #include <rte_eal.h>
 #include <rte_ethdev.h>
+#include <rte_ether.h>
+#include <rte_ip.h>
 #include <rte_log.h>
 #include <rte_malloc.h>
 #include <rte_pci.h>
@@ -8,12 +10,38 @@
 
 #include <iostream>
 
+#include "ptp_hdr.hh"
+
 static volatile bool force_quit;
 
 static void signal_handler(int signum) {
     if (signum == SIGINT || signum == SIGTERM) {
         printf("\n\nSignal %d received, preparing to exit...\n", signum);
         force_quit = true;
+    }
+}
+
+static void parse_ptpv1_header(struct rte_mbuf* mbuf) {
+    struct rte_ipv4_hdr* ipv4_hdr;
+    struct ptpv1_header* ptp_hdr;
+
+    if (mbuf->packet_type & RTE_PTYPE_L3_IPV4) {
+        ipv4_hdr =
+            rte_pktmbuf_mtod_offset(mbuf, struct rte_ipv4_hdr*, sizeof(struct rte_ether_hdr));
+
+        // Check DSCP for PTP
+        // https://www.getdante.com/support/faq/how-does-dante-use-dscp-diffserv-priority-values-when-configuring-qos/
+        if (ipv4_hdr->type_of_service >> 2 == 0x38) {
+            size_t ptp_hdr_offset =
+                sizeof(struct rte_ether_hdr) + ipv4_hdr->ihl * 4 + sizeof(rte_udp_hdr);
+            ptp_hdr = rte_pktmbuf_mtod_offset(mbuf, struct ptpv1_header*, ptp_hdr_offset);
+            RTE_LOG(INFO,
+                    PORT,
+                    PTP_SOURCE_UUID_PRT_FMT "[%04d]: %s.\n",
+                    PTP_SOURCE_UUID_BYTES(ptp_hdr->sourceUuid),
+                    rte_be_to_cpu_16(ptp_hdr->sequenceId),
+                    PTP_CONTROL_FIELD_STRING(ptp_hdr->control));
+        }
     }
 }
 
@@ -74,9 +102,15 @@ int main(int argc, char* argv[]) {
 
         struct rte_eth_conf port_conf {};
         port_conf.txmode.mq_mode = RTE_ETH_MQ_TX_NONE;
+        port_conf.txmode.offloads |= RTE_ETH_TX_OFFLOAD_MULTI_SEGS;
 
         if (dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE) {
             port_conf.txmode.offloads |= RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE;
+        }
+
+        // https://www.intel.com/content/www/us/en/support/articles/000054836/ethernet-products.html
+        if (dev_info.rx_offload_capa & RTE_ETH_RX_OFFLOAD_TIMESTAMP) {
+            port_conf.rxmode.offloads |= RTE_ETH_RX_OFFLOAD_TIMESTAMP;
         }
 
         if (rte_eth_dev_configure(port_id, 1, 1, &port_conf) < 0) {
@@ -123,6 +157,11 @@ int main(int argc, char* argv[]) {
             rte_exit(EXIT_FAILURE, "Failed to start Ethernet device on port %u.\n", port_id);
         }
 
+        // Enable PTP timestamping
+        if (rte_eth_timesync_enable(port_id) < 0) {
+            RTE_LOG(ALERT, PORT, "Failed to enable PTP timestamping on port %u.\n", port_id);
+        }
+
         // Enable promiscuous mode
         if (rte_eth_promiscuous_enable(port_id) != 0) {
             rte_exit(EXIT_FAILURE, "Failed to enable promiscuous mode on port %u.\n", port_id);
@@ -143,6 +182,7 @@ int main(int argc, char* argv[]) {
         nb_rx = rte_eth_rx_burst(port_ids[0], 0, pkts_burst, 32);
 
         for (uint16_t i = 0; i < nb_rx; ++i) {
+            parse_ptpv1_header(pkts_burst[i]);
             rte_eth_tx_buffer(port_ids[1], 0, tx_bufs[1], pkts_burst[i]);
         }
 
@@ -152,11 +192,14 @@ int main(int argc, char* argv[]) {
         nb_rx = rte_eth_rx_burst(port_ids[1], 0, pkts_burst, 32);
 
         for (uint16_t i = 0; i < nb_rx; ++i) {
+            parse_ptpv1_header(pkts_burst[i]);
             rte_eth_tx_buffer(port_ids[0], 0, tx_bufs[0], pkts_burst[i]);
         }
     }
 
     for (auto const port_id : port_ids) {
+        rte_eth_timesync_disable(port_id);
+
         if (rte_eth_dev_stop(port_id) != 0) {
             RTE_LOG(ERR, PORT, "Error stopping Ethernet device for port %u.\n", port_id);
         }
