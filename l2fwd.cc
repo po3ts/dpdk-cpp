@@ -10,7 +10,7 @@
 
 #include <iostream>
 
-#include "ptp_hdr.hh"
+#include "ptpv1.hh"
 
 static volatile bool force_quit;
 
