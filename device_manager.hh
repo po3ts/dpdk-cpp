@@ -7,10 +7,10 @@
 
 namespace dpdk {
 
-class device_manager_t {
+class device_manager_t final {
     public:
-        device_manager_t() = default;
-        ~device_manager_t() = default;
+        device_manager_t(unsigned int nof_elements, unsigned int cache_size);
+        ~device_manager_t();
 
         device_manager_t(const device_manager_t&) = delete;
         device_manager_t& operator=(const device_manager_t&) = delete;
@@ -27,6 +27,7 @@ class device_manager_t {
         [[nodiscard]] device_t* get_device_by_pcie_address(const char* pcie_address) const;
 
     private:
+        struct rte_mempool* mbuf_pool;
         std::array<std::unique_ptr<dpdk::device_t>, RTE_MAX_ETHPORTS> devices;
 };
 
