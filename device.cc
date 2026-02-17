@@ -319,7 +319,7 @@ dpdk::device_t::device_t(const uint16_t port_id,
 }
 
 dpdk::device_t::~device_t() {
-    rte_eth_dev_stop(port_id);
+    stop();
     rte_eth_dev_close(port_id);
     free_tx_buffers();
 }
