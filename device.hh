@@ -67,11 +67,21 @@ class device_t {
 
         void reset();
 
-        template <typename Func,
+        template <auto Func,
                   typename... Args,
-                  std::enable_if_t<std::is_invocable_r_v<int, Func, uint16_t, Args...>, int> = 0>
-        int invoke(Func func, Args&&... args) {
-            return func(port_id, std::forward<Args>(args)...);
+                  std::enable_if_t<std::is_invocable_r_v<int, decltype(Func), uint16_t, Args...>,
+                                   int> = 0>
+        int invoke(Args&&... args) {
+            static_assert(!is_blacklisted<rte_eth_dev_close, Func>(),
+                          "The destructor takes care of closing the device");
+            static_assert(!is_blacklisted<rte_eth_dev_configure, Func>(),
+                          "Use configure() instead of invoking rte_eth_dev_configure directly");
+            static_assert(!is_blacklisted<rte_eth_dev_reset, Func>(),
+                          "Use reset() instead of invoking rte_eth_dev_reset directly");
+            static_assert(
+                !is_blacklisted<rte_eth_tx_queue_setup, Func>(),
+                "Use setup_rx_tx_queues() instead of invoking rte_eth_tx_queue_setup directly");
+            return Func(port_id, std::forward<Args>(args)...);
         }
 
         friend class device_manager_t;
@@ -85,6 +95,15 @@ class device_t {
         static void tx_buffer_count_callback(struct rte_mbuf** pkts,
                                              uint16_t unsent,
                                              void* userdata);
+
+        template <auto Blacklisted, auto Func>
+        static constexpr bool is_blacklisted() {
+            if constexpr (std::is_same_v<decltype(Func), decltype(Blacklisted)>) {
+                return Func == Blacklisted;
+            } else {
+                return false;
+            }
+        }
 
         const uint16_t port_id;
         std::array<char, RTE_ETH_NAME_MAX_LEN> pcie_address;
