@@ -65,6 +65,9 @@ class device_t {
         // Flush the Tx buffer for a given Tx queue
         uint16_t tx_buffer_flush(uint16_t queue_id);
 
+        bool start();
+        bool stop();
+
         void reset();
 
         template <auto Func,
@@ -78,6 +81,10 @@ class device_t {
                           "Use configure() instead of invoking rte_eth_dev_configure directly");
             static_assert(!is_blacklisted<rte_eth_dev_reset, Func>(),
                           "Use reset() instead of invoking rte_eth_dev_reset directly");
+            static_assert(!is_blacklisted<rte_eth_dev_start, Func>(),
+                          "Use start() instead of invoking rte_eth_dev_start directly");
+            static_assert(!is_blacklisted<rte_eth_dev_stop, Func>(),
+                          "Use stop() instead of invoking rte_eth_dev_stop directly");
             static_assert(
                 !is_blacklisted<rte_eth_tx_queue_setup, Func>(),
                 "Use setup_rx_tx_queues() instead of invoking rte_eth_tx_queue_setup directly");

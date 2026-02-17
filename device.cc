@@ -184,6 +184,12 @@ void dpdk::device_t::free_tx_buffers() {
 }
 
 uint16_t dpdk::device_t::rx_burst(uint16_t queue_id, struct rte_mbuf** pkts, uint16_t nb_pkts) {
+    // Device must be running to receive burst of packets
+    if (device_status != device_status_t::RUNNING) {
+        return 0;
+    }
+
+    // Queue ID must be in the range [0, nb_rx_queues - 1] previously supplied to configure()
     if (queue_id >= nb_rx_queues) {
         return 0;
     }
@@ -194,6 +200,12 @@ uint16_t dpdk::device_t::rx_burst(uint16_t queue_id, struct rte_mbuf** pkts, uin
 }
 
 uint16_t dpdk::device_t::tx_burst(uint16_t queue_id, struct rte_mbuf** pkts, uint16_t nb_pkts) {
+    // Device must be running to transmit burst of packets
+    if (device_status != device_status_t::RUNNING) {
+        return 0;
+    }
+
+    // Queue ID must be in the range [0, nb_tx_queues - 1] previously supplied to configure()
     if (queue_id >= nb_tx_queues) {
         return 0;
     }
@@ -204,7 +216,18 @@ uint16_t dpdk::device_t::tx_burst(uint16_t queue_id, struct rte_mbuf** pkts, uin
 }
 
 uint16_t dpdk::device_t::tx_buffer(uint16_t queue_id, struct rte_mbuf* pkt) {
-    if (queue_id >= nb_tx_queues || tx_buffers == nullptr) {
+    // Device must be running to buffer a Tx packet
+    if (device_status != device_status_t::RUNNING) {
+        return 0;
+    }
+
+    // Tx buffers must have been set up to buffer a packet for transmission
+    if (tx_buffers == nullptr) {
+        return 0;
+    }
+
+    // Queue ID must be in the range [0, nb_tx_queues - 1] previously supplied to configure()
+    if (queue_id >= nb_tx_queues) {
         return 0;
     }
 
@@ -214,13 +237,50 @@ uint16_t dpdk::device_t::tx_buffer(uint16_t queue_id, struct rte_mbuf* pkt) {
 }
 
 uint16_t dpdk::device_t::tx_buffer_flush(uint16_t queue_id) {
-    if (queue_id >= nb_tx_queues || tx_buffers == nullptr) {
+    // Device must be running to flush Tx buffer
+    if (device_status != device_status_t::RUNNING) {
+        return 0;
+    }
+
+    // Tx buffers must have been set up before flushing
+    if (tx_buffers == nullptr) {
+        return 0;
+    }
+
+    // Queue ID must be in the range [0, nb_tx_queues - 1] previously supplied to configure()
+    if (queue_id >= nb_tx_queues) {
         return 0;
     }
 
     uint16_t nb_tx = rte_eth_tx_buffer_flush(port_id, queue_id, tx_buffers[queue_id]);
     nb_packets_transmitted[queue_id].fetch_add(nb_tx, std::memory_order_relaxed);
     return nb_tx;
+}
+
+bool dpdk::device_t::start() {
+    if (device_status != device_status_t::READY) {
+        return false;
+    }
+
+    if (rte_eth_dev_start(port_id) < 0) {
+        return false;
+    }
+
+    device_status = device_status_t::RUNNING;
+    return true;
+}
+
+bool dpdk::device_t::stop() {
+    if (device_status != device_status_t::RUNNING) {
+        return false;
+    }
+
+    if (rte_eth_dev_stop(port_id) < 0) {
+        return false;
+    }
+
+    device_status = device_status_t::READY;
+    return true;
 }
 
 void dpdk::device_t::reset() {
