@@ -5,25 +5,39 @@
 
 #include <stdexcept>
 
-dpdk::device_manager_t::device_manager_t(unsigned int nof_elements, unsigned int cache_size)
+dpdk::device_manager_t::device_manager_t(unsigned int nb_elements, unsigned int cache_size)
     : mbuf_pool{nullptr},
       devices{} {
+    // The number of elements in the mempool must not be zero
+    if (nb_elements == 0) {
+        throw std::invalid_argument("Number of elements in mempool must not be zero.");
+    }
+
     // The optimum number of elements in a mempool is n = (2^q - 1)
-    if (nof_elements == 0 || (nof_elements & (nof_elements + 1)) != 0) {
+    if ((nb_elements & (nb_elements + 1)) != 0) {
         throw std::invalid_argument(
             "Number of elements in mempool must be of the form n = (2^q - 1).");
     }
 
-    // cache_size must be lower or equal to RTE_MEMPOOL_CACHE_MAX_SIZE and n / 1.5
+    // cache_size must be lower or equal to RTE_MEMPOOL_CACHE_MAX_SIZE
+    if (cache_size > 0 && cache_size > RTE_MEMPOOL_CACHE_MAX_SIZE) {
+        throw std::invalid_argument(
+            "Cache size must be lower or equal to RTE_MEMPOOL_CACHE_MAX_SIZE.");
+    }
+
+    // cache_size must be lower or equal to n / 1.5
+    if (cache_size > 0 && cache_size > (nb_elements / 1.5)) {
+        throw std::invalid_argument("Cache size must be lower or equal to n / 1.5.");
+    }
+
     // It is advised to choose cache_size to have "n modulo cache_size == 0"
-    if (cache_size > 0 && (cache_size > RTE_MEMPOOL_CACHE_MAX_SIZE ||
-                           cache_size > (nof_elements / 1.5) || (nof_elements % cache_size != 0))) {
-        throw std::invalid_argument("Invalid cache size for mempool.");
+    if (cache_size > 0 && nb_elements % cache_size != 0) {
+        throw std::invalid_argument("Number of elements modulo cache size must be zero.");
     }
 
     // Initialize pool of memory buffers
     mbuf_pool = rte_pktmbuf_pool_create(
-        "mbuf_pool", nof_elements, cache_size, 0, RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
+        "mbuf_pool", nb_elements, cache_size, 0, RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
 
     if (mbuf_pool == nullptr) {
         throw std::runtime_error("Failed to create mbuf pool.");

@@ -9,7 +9,7 @@ namespace dpdk {
 
 class device_manager_t final {
     public:
-        device_manager_t(unsigned int nof_elements, unsigned int cache_size);
+        device_manager_t(unsigned int nb_elements, unsigned int cache_size);
         ~device_manager_t();
 
         device_manager_t(const device_manager_t&) = delete;
