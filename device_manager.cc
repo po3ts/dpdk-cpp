@@ -6,7 +6,8 @@
 #include <stdexcept>
 
 dpdk::device_manager_t::device_manager_t(unsigned int nof_elements, unsigned int cache_size)
-    : devices{} {
+    : mbuf_pool{nullptr},
+      devices{} {
     // The optimum number of elements in a mempool is n = (2^q - 1)
     if (nof_elements == 0 || (nof_elements & (nof_elements + 1)) != 0) {
         throw std::invalid_argument(
@@ -24,12 +25,27 @@ dpdk::device_manager_t::device_manager_t(unsigned int nof_elements, unsigned int
     mbuf_pool = rte_pktmbuf_pool_create(
         "mbuf_pool", nof_elements, cache_size, 0, RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
 
-    if (mbuf_pool == NULL) {
+    if (mbuf_pool == nullptr) {
         throw std::runtime_error("Failed to create mbuf pool.");
     }
 }
 
-dpdk::device_manager_t::~device_manager_t() { rte_mempool_free(mbuf_pool); }
+dpdk::device_manager_t::~device_manager_t() { cleanup(); }
+
+// Free resources
+void dpdk::device_manager_t::cleanup() {
+    if (mbuf_pool == nullptr) {
+        return;
+    }
+
+    // Clear devices array
+    for (auto& device : devices) {
+        device.reset();
+    }
+
+    rte_mempool_free(mbuf_pool);
+    mbuf_pool = nullptr;
+}
 
 // Static method to initialize EAL
 bool dpdk::device_manager_t::eal_initialize(int argc, char** argv) {

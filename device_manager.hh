@@ -15,6 +15,8 @@ class device_manager_t final {
         device_manager_t(const device_manager_t&) = delete;
         device_manager_t& operator=(const device_manager_t&) = delete;
 
+        void cleanup();
+
         // EAL initialization and cleanup
         static bool eal_initialize(int argc, char** argv);
         static bool eal_cleanup();
