@@ -1,4 +1,4 @@
-#include "device.hh"
+#include "dpdk/device.hh"
 
 #include <rte_malloc.h>
 

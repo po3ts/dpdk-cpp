@@ -6,9 +6,9 @@
 #include <cinttypes>
 #include <iostream>
 
-#include "device_manager.hh"
+#include "dpdk/device_manager.hh"
+#include "dpdk/rte_util.hh"
 #include "ptpv1.hh"
-#include "rte_utils.hh"
 
 static volatile bool force_quit;
 

@@ -3,7 +3,7 @@
 #include <array>
 #include <memory>
 
-#include "device.hh"
+#include "dpdk/device.hh"
 
 namespace dpdk {
 

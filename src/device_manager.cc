@@ -1,4 +1,4 @@
-#include "device_manager.hh"
+#include "dpdk/device_manager.hh"
 
 #include <rte_eal.h>
 #include <rte_ethdev.h>
