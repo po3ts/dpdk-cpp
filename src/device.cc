@@ -1,8 +1,8 @@
-#include "dpdk/device.hh"
+#include "dpdkpp/device.hh"
 
 #include <rte_malloc.h>
 
-std::optional<struct rte_ether_addr> dpdk::device_t::get_mac_address() const {
+std::optional<struct rte_ether_addr> dpdkpp::device_t::get_mac_address() const {
     struct rte_ether_addr mac_addr;
 
     if (rte_eth_macaddr_get(port_id, &mac_addr) < 0) {
@@ -12,7 +12,7 @@ std::optional<struct rte_ether_addr> dpdk::device_t::get_mac_address() const {
     return mac_addr;
 }
 
-uint64_t dpdk::device_t::get_nb_packets_received(uint16_t queue_id) const {
+uint64_t dpdkpp::device_t::get_nb_packets_received(uint16_t queue_id) const {
     if (queue_id >= nb_rx_queues) {
         return 0;
     }
@@ -20,7 +20,7 @@ uint64_t dpdk::device_t::get_nb_packets_received(uint16_t queue_id) const {
     return nb_packets_received[queue_id].load(std::memory_order_relaxed);
 }
 
-uint64_t dpdk::device_t::get_nb_packets_transmitted(uint16_t queue_id) const {
+uint64_t dpdkpp::device_t::get_nb_packets_transmitted(uint16_t queue_id) const {
     if (queue_id >= nb_tx_queues) {
         return 0;
     }
@@ -28,7 +28,7 @@ uint64_t dpdk::device_t::get_nb_packets_transmitted(uint16_t queue_id) const {
     return nb_packets_transmitted[queue_id].load(std::memory_order_relaxed);
 }
 
-uint64_t dpdk::device_t::get_nb_packets_dropped(uint16_t queue_id) const {
+uint64_t dpdkpp::device_t::get_nb_packets_dropped(uint16_t queue_id) const {
     if (queue_id >= nb_tx_queues) {
         return 0;
     }
@@ -36,9 +36,9 @@ uint64_t dpdk::device_t::get_nb_packets_dropped(uint16_t queue_id) const {
     return nb_packets_dropped[queue_id].load(std::memory_order_relaxed);
 }
 
-bool dpdk::device_t::configure(const uint16_t nb_rx_queues,
-                               const uint16_t nb_tx_queues,
-                               const rte_eth_conf* eth_conf) {
+bool dpdkpp::device_t::configure(const uint16_t nb_rx_queues,
+                                 const uint16_t nb_tx_queues,
+                                 const rte_eth_conf* eth_conf) {
     // Verify that device is not yet configured
     if (device_status != device_status_t::UNCONFIGURED) {
         return false;
@@ -76,10 +76,10 @@ bool dpdk::device_t::configure(const uint16_t nb_rx_queues,
     return true;
 }
 
-bool dpdk::device_t::setup_rx_tx_queues(uint16_t nb_rx_descriptors,
-                                        uint16_t nb_tx_descriptors,
-                                        const rte_eth_rxconf* rx_conf,
-                                        const rte_eth_txconf* tx_conf) {
+bool dpdkpp::device_t::setup_rx_tx_queues(uint16_t nb_rx_descriptors,
+                                          uint16_t nb_tx_descriptors,
+                                          const rte_eth_rxconf* rx_conf,
+                                          const rte_eth_txconf* tx_conf) {
     // Verify that device is configured
     if (device_status != device_status_t::CONFIGURED) {
         return false;
@@ -115,7 +115,7 @@ bool dpdk::device_t::setup_rx_tx_queues(uint16_t nb_rx_descriptors,
     return true;
 }
 
-bool dpdk::device_t::setup_tx_buffers(const size_t nb_packets_per_tx_buffer) {
+bool dpdkpp::device_t::setup_tx_buffers(const size_t nb_packets_per_tx_buffer) {
     // Verify that device is configured or ready
     if (device_status != device_status_t::CONFIGURED && device_status != device_status_t::READY) {
         return false;
@@ -168,7 +168,7 @@ bool dpdk::device_t::setup_tx_buffers(const size_t nb_packets_per_tx_buffer) {
     return true;
 }
 
-void dpdk::device_t::free_tx_buffers() {
+void dpdkpp::device_t::free_tx_buffers() {
     if (tx_buffers == nullptr) {
         return;
     }
@@ -183,7 +183,7 @@ void dpdk::device_t::free_tx_buffers() {
     tx_buffers.reset();
 }
 
-uint16_t dpdk::device_t::rx_burst(uint16_t queue_id, struct rte_mbuf** pkts, uint16_t nb_pkts) {
+uint16_t dpdkpp::device_t::rx_burst(uint16_t queue_id, struct rte_mbuf** pkts, uint16_t nb_pkts) {
     // Device must be running to receive burst of packets
     if (device_status != device_status_t::RUNNING) {
         return 0;
@@ -199,7 +199,7 @@ uint16_t dpdk::device_t::rx_burst(uint16_t queue_id, struct rte_mbuf** pkts, uin
     return nb_rx;
 }
 
-uint16_t dpdk::device_t::tx_burst(uint16_t queue_id, struct rte_mbuf** pkts, uint16_t nb_pkts) {
+uint16_t dpdkpp::device_t::tx_burst(uint16_t queue_id, struct rte_mbuf** pkts, uint16_t nb_pkts) {
     // Device must be running to transmit burst of packets
     if (device_status != device_status_t::RUNNING) {
         return 0;
@@ -215,7 +215,7 @@ uint16_t dpdk::device_t::tx_burst(uint16_t queue_id, struct rte_mbuf** pkts, uin
     return nb_tx;
 }
 
-uint16_t dpdk::device_t::tx_buffer(uint16_t queue_id, struct rte_mbuf* pkt) {
+uint16_t dpdkpp::device_t::tx_buffer(uint16_t queue_id, struct rte_mbuf* pkt) {
     // Device must be running to buffer a Tx packet
     if (device_status != device_status_t::RUNNING) {
         return 0;
@@ -236,7 +236,7 @@ uint16_t dpdk::device_t::tx_buffer(uint16_t queue_id, struct rte_mbuf* pkt) {
     return nb_tx;
 }
 
-uint16_t dpdk::device_t::tx_buffer_flush(uint16_t queue_id) {
+uint16_t dpdkpp::device_t::tx_buffer_flush(uint16_t queue_id) {
     // Device must be running to flush Tx buffer
     if (device_status != device_status_t::RUNNING) {
         return 0;
@@ -257,7 +257,7 @@ uint16_t dpdk::device_t::tx_buffer_flush(uint16_t queue_id) {
     return nb_tx;
 }
 
-bool dpdk::device_t::start() {
+bool dpdkpp::device_t::start() {
     if (device_status != device_status_t::READY) {
         return false;
     }
@@ -270,7 +270,7 @@ bool dpdk::device_t::start() {
     return true;
 }
 
-bool dpdk::device_t::stop() {
+bool dpdkpp::device_t::stop() {
     if (device_status != device_status_t::RUNNING) {
         return false;
     }
@@ -283,7 +283,7 @@ bool dpdk::device_t::stop() {
     return true;
 }
 
-void dpdk::device_t::reset() {
+void dpdkpp::device_t::reset() {
     // If device is unconfigured, there is nothing to reset
     if (device_status == device_status_t::UNCONFIGURED) {
         return;
@@ -302,9 +302,9 @@ void dpdk::device_t::reset() {
     device_status = device_status_t::UNCONFIGURED;
 }
 
-dpdk::device_t::device_t(const uint16_t port_id,
-                         const char* pcie_address,
-                         struct rte_mempool* mbuf_pool)
+dpdkpp::device_t::device_t(const uint16_t port_id,
+                           const char* pcie_address,
+                           struct rte_mempool* mbuf_pool)
     : port_id(port_id),
       pcie_address{""},
       mbuf_pool(mbuf_pool),
@@ -318,15 +318,15 @@ dpdk::device_t::device_t(const uint16_t port_id,
     strlcpy(this->pcie_address.data(), pcie_address, RTE_ETH_NAME_MAX_LEN);
 }
 
-dpdk::device_t::~device_t() {
+dpdkpp::device_t::~device_t() {
     stop();
     rte_eth_dev_close(port_id);
     free_tx_buffers();
 }
 
-void dpdk::device_t::tx_buffer_count_callback(struct rte_mbuf** pkts,
-                                              uint16_t unsent,
-                                              void* userdata) {
+void dpdkpp::device_t::tx_buffer_count_callback(struct rte_mbuf** pkts,
+                                                uint16_t unsent,
+                                                void* userdata) {
     auto* counter = static_cast<std::atomic<uint64_t>*>(userdata);
     counter->fetch_add(unsent, std::memory_order_relaxed);
 

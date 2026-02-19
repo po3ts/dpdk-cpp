@@ -3,9 +3,9 @@
 #include <array>
 #include <memory>
 
-#include "dpdk/device.hh"
+#include "dpdkpp/device.hh"
 
-namespace dpdk {
+namespace dpdkpp {
 
 class device_manager_t final {
     public:
@@ -30,7 +30,7 @@ class device_manager_t final {
 
     private:
         struct rte_mempool* mbuf_pool;
-        std::array<std::unique_ptr<dpdk::device_t>, RTE_MAX_ETHPORTS> devices;
+        std::array<std::unique_ptr<dpdkpp::device_t>, RTE_MAX_ETHPORTS> devices;
 };
 
-}  // namespace dpdk
+}  // namespace dpdkpp

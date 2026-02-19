@@ -6,8 +6,8 @@
 #include <cinttypes>
 #include <iostream>
 
-#include "dpdk/device_manager.hh"
-#include "dpdk/rte_util.hh"
+#include "dpdkpp/device_manager.hh"
+#include "dpdkpp/rte_util.hh"
 #include "ptpv1.hh"
 
 static volatile bool force_quit;
@@ -44,19 +44,19 @@ static void parse_ptpv1_header(struct rte_mbuf* mbuf) {
 int main(int argc, char* argv[]) {
     std::cout << "This is a simple layer 2 forwarding application built around DPDK." << std::endl;
 
-    assert(dpdk::device_manager_t::eal_initialize(argc, argv));
+    assert(dpdkpp::device_manager_t::eal_initialize(argc, argv));
 
-    dpdk::device_manager_t device_manager{4095U, 273U};
+    dpdkpp::device_manager_t device_manager{4095U, 273U};
 
     assert(device_manager.update_device_list());
 
-    dpdk::device_t* device2 = device_manager.get_device_by_pcie_address("0000:02:00.2");
+    dpdkpp::device_t* device2 = device_manager.get_device_by_pcie_address("0000:02:00.2");
     assert(device2 != nullptr);
 
-    dpdk::device_t* device3 = device_manager.get_device_by_pcie_address("0000:02:00.3");
+    dpdkpp::device_t* device3 = device_manager.get_device_by_pcie_address("0000:02:00.3");
     assert(device3 != nullptr);
 
-    for (dpdk::device_t* device : {device2, device3}) {
+    for (dpdkpp::device_t* device : {device2, device3}) {
         /*
             Display device information
         */
@@ -133,7 +133,7 @@ int main(int argc, char* argv[]) {
     uint64_t tsc_current = 0;
     uint64_t tsc_last = 0;
 
-    auto print_stats = [](const dpdk::device_t* device) {
+    auto print_stats = [](const dpdkpp::device_t* device) {
         std::printf("[%s] Rx: %7" PRIu64 " | Tx: %7" PRIu64 " | Dropped: %7" PRIu64 "\n",
                     device->get_pcie_address(),
                     device->get_nb_packets_received(0),
@@ -178,7 +178,7 @@ int main(int argc, char* argv[]) {
 
     device_manager.cleanup();
 
-    dpdk::device_manager_t::eal_cleanup();
+    dpdkpp::device_manager_t::eal_cleanup();
 
     std::cout << "Exiting. Bye..." << std::endl;
 

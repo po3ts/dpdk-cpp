@@ -9,7 +9,7 @@
 #include <optional>
 #include <type_traits>
 
-namespace dpdk {
+namespace dpdkpp {
 
 enum class device_status_t : uint8_t {
     UNCONFIGURED,
@@ -129,4 +129,4 @@ class device_t {
         std::unique_ptr<struct rte_eth_dev_tx_buffer*[]> tx_buffers;
 };
 
-}  // namespace dpdk
+}  // namespace dpdkpp
