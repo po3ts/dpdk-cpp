@@ -47,14 +47,14 @@ int main(int argc, char* argv[]) {
 
     assert(dpdkpp::device_manager_t::eal_initialize(argc, argv));
 
-    dpdkpp::device_manager_t device_manager{4095U, 273U};
+    auto device_manager = dpdkpp::device_manager_t::create<4095U, 273U>();
 
-    assert(device_manager.update_device_list());
+    assert(device_manager->update_device_list());
 
-    dpdkpp::device_t* device2 = device_manager.get_device_by_pcie_address("0000:02:00.2");
+    dpdkpp::device_t* device2 = device_manager->get_device_by_pcie_address("0000:02:00.2");
     assert(device2 != nullptr);
 
-    dpdkpp::device_t* device3 = device_manager.get_device_by_pcie_address("0000:02:00.3");
+    dpdkpp::device_t* device3 = device_manager->get_device_by_pcie_address("0000:02:00.3");
     assert(device3 != nullptr);
 
     for (dpdkpp::device_t* device : {device2, device3}) {
@@ -177,7 +177,7 @@ int main(int argc, char* argv[]) {
     assert(device2->stop());
     assert(device3->stop());
 
-    device_manager.cleanup();
+    device_manager.reset();
 
     dpdkpp::device_manager_t::eal_cleanup();
 

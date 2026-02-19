@@ -9,13 +9,35 @@ namespace dpdkpp {
 
 class device_manager_t final {
     public:
-        device_manager_t(unsigned int nb_elements, unsigned int cache_size);
         ~device_manager_t();
 
+        device_manager_t(device_manager_t&&) = delete;
         device_manager_t(const device_manager_t&) = delete;
         device_manager_t& operator=(const device_manager_t&) = delete;
 
-        void cleanup();
+        template <unsigned int NbElements, unsigned int CacheSize>
+        [[nodiscard]] static std::unique_ptr<device_manager_t> create() {
+            static_assert(NbElements > 0,
+                          "Number of elements in mempool must be greater than zero.");
+            static_assert((NbElements & (NbElements + 1)) == 0,
+                          "Number of elements in mempool must be of the form n = (2^q - 1).");
+            static_assert(CacheSize == 0 || CacheSize <= RTE_MEMPOOL_CACHE_MAX_SIZE,
+                          "Cache size must be lower or equal to RTE_MEMPOOL_CACHE_MAX_SIZE.");
+            static_assert(CacheSize == 0 || CacheSize <= NbElements / 1.5,
+                          "Cache size must be lower or equal to n / 1.5.");
+            static_assert(CacheSize == 0 || NbElements % CacheSize == 0,
+                          "Number of elements modulo cache size must be zero.");
+
+            // Initialize pool of memory buffers
+            struct rte_mempool* mbuf_pool = rte_pktmbuf_pool_create(
+                "mbuf_pool", NbElements, CacheSize, 0, RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
+
+            if (mbuf_pool == nullptr) {
+                return nullptr;
+            }
+
+            return std::unique_ptr<device_manager_t>(new device_manager_t(mbuf_pool));
+        }
 
         // EAL initialization and cleanup
         static bool eal_initialize(int argc, char** argv);
@@ -29,6 +51,10 @@ class device_manager_t final {
         [[nodiscard]] device_t* get_device_by_pcie_address(const char* pcie_address) const;
 
     private:
+        device_manager_t(struct rte_mempool* mbuf_pool)
+            : mbuf_pool{mbuf_pool},
+              devices{} {}
+
         struct rte_mempool* mbuf_pool;
         std::array<std::unique_ptr<dpdkpp::device_t>, RTE_MAX_ETHPORTS> devices;
 };
