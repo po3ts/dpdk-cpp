@@ -42,7 +42,8 @@ static void parse_ptpv1_header(struct rte_mbuf* mbuf) {
 }
 
 int main(int argc, char* argv[]) {
-    std::cout << "This is a simple layer 2 forwarding application built around DPDK." << std::endl;
+    std::cout << "This is a simple layer 2 forwarding application built around dpdk++."
+              << std::endl;
 
     assert(dpdkpp::device_manager_t::eal_initialize(argc, argv));
 

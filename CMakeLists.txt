@@ -34,7 +34,7 @@ add_executable(l2fwd)
 
 target_sources(l2fwd
     PRIVATE
-        examples/l2fwd.cc
+        examples/l2fwd/l2fwd.cc
 )
 
 target_link_libraries(l2fwd PRIVATE dpdkpp ${DPDK_LIBRARIES})
