@@ -50,6 +50,20 @@ class device_manager_t final {
         [[nodiscard]] device_t* get_device_by_port_id(const uint16_t port_id) const;
         [[nodiscard]] device_t* get_device_by_pcie_address(const char* pcie_address) const;
 
+        // Allocate one or more mbufs from the pool
+        [[nodiscard]] struct rte_mbuf* alloc_mbuf();
+        [[nodiscard]] bool alloc_mbufs(struct rte_mbuf** mbufs, unsigned int count);
+
+        // Clone or copy an mbuf using the pool
+        [[nodiscard]] struct rte_mbuf* clone_mbuf(struct rte_mbuf* mbuf);
+        [[nodiscard]] struct rte_mbuf* copy_mbuf(const struct rte_mbuf* mbuf,
+                                                 uint32_t offset,
+                                                 uint32_t length);
+
+        // Query pool utilization
+        unsigned int get_mbuf_pool_avail_count() const;
+        unsigned int get_mbuf_pool_in_use_count() const;
+
     private:
         device_manager_t(struct rte_mempool* mbuf_pool)
             : mbuf_pool{mbuf_pool},

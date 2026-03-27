@@ -62,3 +62,27 @@ dpdkpp::device_t* dpdkpp::device_manager_t::get_device_by_pcie_address(
 
     return devices[port_id].get();
 }
+
+struct rte_mbuf* dpdkpp::device_manager_t::alloc_mbuf() { return rte_pktmbuf_alloc(mbuf_pool); }
+
+bool dpdkpp::device_manager_t::alloc_mbufs(struct rte_mbuf** mbufs, unsigned int count) {
+    return rte_pktmbuf_alloc_bulk(mbuf_pool, mbufs, count) == 0;
+}
+
+struct rte_mbuf* dpdkpp::device_manager_t::clone_mbuf(struct rte_mbuf* mbuf) {
+    return rte_pktmbuf_clone(mbuf, mbuf_pool);
+}
+
+struct rte_mbuf* dpdkpp::device_manager_t::copy_mbuf(const struct rte_mbuf* mbuf,
+                                                     uint32_t offset,
+                                                     uint32_t length) {
+    return rte_pktmbuf_copy(mbuf, mbuf_pool, offset, length);
+}
+
+unsigned int dpdkpp::device_manager_t::get_mbuf_pool_avail_count() const {
+    return rte_mempool_avail_count(mbuf_pool);
+}
+
+unsigned int dpdkpp::device_manager_t::get_mbuf_pool_in_use_count() const {
+    return rte_mempool_in_use_count(mbuf_pool);
+}
