@@ -16,7 +16,7 @@ class device_manager_t final {
         device_manager_t& operator=(const device_manager_t&) = delete;
 
         template <unsigned int NbElements, unsigned int CacheSize>
-        [[nodiscard]] static std::unique_ptr<device_manager_t> create() {
+        [[nodiscard]] static std::unique_ptr<device_manager_t> create(const char* pool_name) {
             static_assert(NbElements > 0,
                           "Number of elements in mempool must be greater than zero.");
             static_assert((NbElements & (NbElements + 1)) == 0,
@@ -30,7 +30,7 @@ class device_manager_t final {
 
             // Initialize pool of memory buffers
             struct rte_mempool* mbuf_pool = rte_pktmbuf_pool_create(
-                "mbuf_pool", NbElements, CacheSize, 0, RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
+                pool_name, NbElements, CacheSize, 0, RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
 
             if (mbuf_pool == nullptr) {
                 return nullptr;

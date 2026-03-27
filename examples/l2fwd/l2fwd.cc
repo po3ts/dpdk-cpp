@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
 
     assert(dpdkpp::device_manager_t::eal_initialize(argc, argv));
 
-    auto device_manager = dpdkpp::device_manager_t::create<4095U, 273U>();
+    auto device_manager = dpdkpp::device_manager_t::create<4095U, 273U>("mbuf_pool");
 
     assert(device_manager->update_device_list());
 
