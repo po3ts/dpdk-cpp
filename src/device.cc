@@ -289,6 +289,7 @@ void dpdkpp::device_t::reset() {
         return;
     }
 
+    // Stop the port and return it to its initial state
     rte_eth_dev_reset(port_id);
     free_tx_buffers();
 
@@ -320,7 +321,11 @@ dpdkpp::device_t::device_t(const uint16_t port_id,
 
 dpdkpp::device_t::~device_t() {
     stop();
-    rte_eth_dev_close(port_id);
+
+    if (device_status != device_status_t::UNCONFIGURED) {
+        rte_eth_dev_close(port_id);
+    }
+
     free_tx_buffers();
 }
 
